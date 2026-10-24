@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>魏晉南北朝 沉浸式遊戲</title>
+<style>
+  @import url('https://cdn.jsdelivr.net/npm/fontsource-noto-serif-tc@4.0.0/chinese-traditional-400.css');
+  @import url('https://cdn.jsdelivr.net/npm/fontsource-noto-serif-tc@4.0.0/chinese-traditional-700.css');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Serif TC', serif;
+    overflow: hidden;
+    background: #0a0a0a;
+    user-select: none;
+  }
+
+  #game-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 背景層 */
+  #bg-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-color: #1a0a2e;
+    transition: background-image 0.8s ease;
+    z-index: 1;
+  }
+
+  #bg-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.0) 30%, rgba(0,0,0,0.5) 100%);
+    z-index: 2;
+  }
+
+  /* 標題畫面 */
+  #title-screen {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1a0a2e 0%, #16213e 50%, #0f3460 100%);
+  }
+
+  .title-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+  }
+
+  .title-main {
+    font-size: 4rem;
+    font-weight: 700;
+    color: #f0e6d3;
+    text-shadow: 0 0 40px rgba(212, 175, 55, 0.5), 0 4px 8px rgba(0,0,0,0.5);
+    letter-spacing: 0.2em;
+    margin-bottom: 1rem;
+    animation: titleFloat 3s ease-in-out infinite;
+  }
+
+  .title-sub {
+    font-size: 1.5rem;
+    color: #d4af37;
+    letter-spacing: 0.3em;
+    margin-bottom: 3rem;
+    text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+  }
+
+  @keyframes titleFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .title-btn {
+    padding: 16px 48px;
+    font-size: 1.3rem;
+    font-family: 'Noto Serif TC', serif;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.05));
+    border: 2px solid rgba(212, 175, 55, 0.5);
+    color: #f0e6d3;
+    cursor: pointer;
+    letter-spacing: 0.2em;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+  }
+
+  .title-btn:hover {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.35), rgba(212, 175, 55, 0.15));
+    border-color: #d4af37;
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+  }
+
+  /* 對話框 */
+  #dialogue-box {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 50;
+    padding: 0 3% 2%;
+    display: none;
+  }
+
+  .dialogue-inner {
+    background: linear-gradient(180deg, rgba(10, 10, 30, 0.88) 0%, rgba(10, 10, 30, 0.95) 100%);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 12px;
+    padding: 24px 30px;
+    backdrop-filter: blur(15px);
+    position: relative;
+    min-height: 180px;
+    max-height: 40vh;
+    overflow-y: auto;
+    cursor: pointer;
+  }
+
+  .dialogue-inner::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: 20%; right: 20%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #d4af37, transparent);
+  }
+
+  .speaker-name {
+    position: absolute;
+    top: -18px;
+    left: 30px;
+    background: linear-gradient(135deg, #d4af37, #b8860b);
+    color: #1a0a2e;
+    padding: 4px 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 4px;
+    letter-spacing: 0.1em;
+  }
+
+  .speaker-name.narrator {
+    background: linear-gradient(135deg, #8b7355, #6b5b45);
+    color: #f0e6d3;
+  }
+
+  .dialogue-text {
+    color: #f0e6d3;
+    font-size: 1.1rem;
+    line-height: 1.9;
+    min-height: 80px;
+    padding-top: 10px;
+    letter-spacing: 0.05em;
+    white-space: pre-wrap;
+  }
+
+  .dialogue-text .cursor-blink {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: #d4af37;
+    margin-left: 2px;
+    animation: blink 0.8s infinite;
+    vertical-align: text-bottom;
+  }
+
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+
+  .dialogue-continue {
+    position: absolute;
+    bottom: 12px;
+    right: 25px;
+    color: #d4af37;
+    font-size: 0.85rem;
+    animation: continueBounce 1.5s ease-in-out infinite;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .dialogue-continue.show { opacity: 1; }
+
+  @keyframes continueBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+
+  /* 選項按鈕 */
+  #choices-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 45;
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    width: 650px;
+    max-width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .choice-btn {
+    padding: 16px 24px;
+    font-size: 1.05rem;
+    font-family: 'Noto Serif TC', serif;
+    background: linear-gradient(135deg, rgba(26, 10, 46, 0.92), rgba(22, 33, 62, 0.92));
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    color: #f0e6d3;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: all 0.3s ease;
+    text-align: left;
+    border-radius: 6px;
+  }
+
+  .choice-btn:hover {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(212, 175, 55, 0.1));
+    border-color: #d4af37;
+    transform: translateX(8px);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+  }
+
+  .choice-btn .choice-num {
+    color: #d4af37;
+    margin-right: 10px;
+    font-weight: 700;
+  }
+
+  /* 輸入框 */
+  #input-area {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 60;
+    display: none;
+    flex-direction: column;
+    gap: 15px;
+    width: 500px;
+    max-width: 90%;
+    background: rgba(10, 10, 30, 0.85);
+    padding: 30px;
+    border-radius: 12px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    backdrop-filter: blur(15px);
+  }
+
+  #input-area .input-title {
+    color: #d4af37;
+    font-size: 1.3rem;
+    text-align: center;
+    margin-bottom: 10px;
+    letter-spacing: 0.15em;
+  }
+
+  .name-input {
+    padding: 14px 20px;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    border-radius: 8px;
+    font-size: 1.1rem;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Noto Serif TC', serif;
+    background: rgba(10, 10, 30, 0.8);
+    color: #f0e6d3;
+    backdrop-filter: blur(10px);
+  }
+
+  .name-input::placeholder {
+    color: rgba(240, 230, 211, 0.5);
+  }
+
+  .name-input:focus {
+    outline: none;
+    border-color: #d4af37;
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+  }
+
+  /* 河道與酒杯 */
+  #river-path-container {
+    position: absolute;
+    top: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    max-width: 800px;
+    height: 60px;
+    z-index: 8;
+    overflow: hidden;
+    display: none;
+    background: linear-gradient(to right, #a5d8f3, #72c6e6);
+    border-radius: 30px;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.1), 0 4px 20px rgba(0,0,0,0.3);
+  }
+
+  #wine-cup {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    background-color: #fff;
+    border-radius: 50%;
+    border: 2px solid #8c7851;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+  }
+
+  @keyframes float-cup {
+    0% { left: 0%; transform: translateY(-50%) rotate(0deg); }
+    50% { left: 50%; transform: translateY(-50%) rotate(30deg); }
+    100% { left: 100%; transform: translateY(-50%) rotate(60deg); }
+  }
+
+  /* 訊息框 */
+  #message-box {
+    position: absolute;
+    top: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 70;
+    background: rgba(252, 228, 236, 0.95);
+    color: #ad1457;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    display: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    backdrop-filter: blur(10px);
+    text-align: center;
+  }
+
+  /* 玩家資訊 */
+  #user-info {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 60;
+    color: #d4af37;
+    font-size: 0.9rem;
+    background: rgba(10, 10, 30, 0.7);
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    backdrop-filter: blur(5px);
+    display: none;
+  }
+
+  /* UI 按鈕 */
+  #ui-buttons {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 60;
+    display: none;
+    gap: 8px;
+  }
+
+  .ui-btn {
+    width: 40px;
+    height: 40px;
+    background: rgba(10, 10, 30, 0.7);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    color: #d4af37;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    backdrop-filter: blur(5px);
+    position: relative;
+  }
+
+  .ui-btn:hover {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: #d4af37;
+  }
+
+  .ui-btn.playing {
+    animation: musicPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes musicPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); }
+    50% { box-shadow: 0 0 15px 3px rgba(212, 175, 55, 0.3); }
+  }
+
+  /* 音量滑桿 */
+  #volume-control {
+    position: absolute;
+    top: 65px;
+    right: 15px;
+    z-index: 60;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: rgba(10, 10, 30, 0.85);
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    backdrop-filter: blur(10px);
+  }
+
+  #volume-control.show {
+    display: flex;
+  }
+
+  #volume-slider {
+    width: 100px;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(212, 175, 55, 0.3);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  #volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #d4af37;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+  }
+
+  #volume-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #d4af37;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+  }
+
+  #volume-label {
+    color: #d4af37;
+    font-size: 0.8rem;
+    min-width: 30px;
+    text-align: center;
+  }
+
+  /* 音樂曲目選擇 */
+  #music-menu {
+    position: absolute;
+    top: 65px;
+    right: 15px;
+    z-index: 60;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(10, 10, 30, 0.9);
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    backdrop-filter: blur(15px);
+    min-width: 180px;
+  }
+
+  #music-menu.show {
+    display: flex;
+  }
+
+  .music-menu-title {
+    color: #d4af37;
+    font-size: 0.85rem;
+    text-align: center;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    margin-bottom: 4px;
+    letter-spacing: 0.1em;
+  }
+
+  .music-option {
+    padding: 8px 12px;
+    background: transparent;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    color: #f0e6d3;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.3s;
+    text-align: left;
+  }
+
+  .music-option:hover {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: #d4af37;
+  }
+
+  .music-option.active {
+    background: rgba(212, 175, 55, 0.25);
+    border-color: #d4af37;
+    color: #d4af37;
+  }
+
+  /* 粒子效果 */
+  .particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(212, 175, 55, 0.6);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 5;
+    animation: particleFloat 4s ease-in-out infinite;
+  }
+
+  @keyframes particleFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0; }
+    25% { opacity: 1; }
+    75% { opacity: 0.5; }
+    100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
+  }
+
+  /* 響應式 */
+  @media (max-width: 768px) {
+    .title-main { font-size: 2.5rem; }
+    .title-sub { font-size: 1.2rem; }
+    .dialogue-text { font-size: 1rem; }
+    #choices-container { width: 90%; }
+    #input-area { width: 90%; }
+    .dialogue-inner { padding: 20px; min-height: 150px; }
+    #volume-slider { width: 70px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <div id="bg-layer"></div>
+  <div id="bg-overlay"></div>
+
+  <!-- 標題畫面 -->
+  <div id="title-screen">
+    <div class="title-content">
+      <div class="title-main">魏晉南北朝</div>
+      <div class="title-sub">沉 浸 式 遊 戲</div>
+      <button class="title-btn" onclick="showInputArea()">☕ 進入遊戲</button>
+    </div>
+  </div>
+
+  <!-- 輸入區域 -->
+  <div id="input-area">
+    <div class="input-title">請輸入你的姓名</div>
+    <input type="text" id="player-name-input" class="name-input" placeholder="請輸入你的姓名...">
+    <button class="choice-btn" onclick="startGame()" style="text-align:center;">進入遊戲</button>
+  </div>
+
+  <!-- UI 按鈕 -->
+  <div id="ui-buttons">
+    <button class="ui-btn" id="music-btn" onclick="toggleMusicMenu(event)" title="音樂">♪</button>
+    <button class="ui-btn" onclick="toggleAuto()" title="自動播放">▶</button>
+    <button class="ui-btn" onclick="backToTitle()" title="返回標題">⌂</button>
+  </div>
+
+  <!-- 音樂選單 -->
+  <div id="music-menu">
+    <div class="music-menu-title">🎵 背景音樂</div>
+    <button class="music-option active" data-track="guqin" onclick="switchTrack('guqin', event)">🎼 古琴悠韻</button>
+    <button class="music-option" data-track="bamboo" onclick="switchTrack('bamboo', event)">🎋 竹林清風</button>
+    <button class="music-option" data-track="stream" onclick="switchTrack('stream', event)">💧 曲水流觴</button>
+    <button class="music-option" data-track="moonlight" onclick="switchTrack('moonlight', event)">🌙 月下獨酌</button>
+    <button class="music-option" data-track="off" onclick="switchTrack('off', event)">🔇 關閉音樂</button>
+  </div>
+
+  <!-- 音量控制 -->
+  <div id="volume-control">
+    <span style="color:#d4af37;font-size:0.8rem;">🔊</span>
+    <input type="range" id="volume-slider" min="0" max="100" value="40">
+    <span id="volume-label">40%</span>
+  </div>
+
+  <!-- 玩家資訊 -->
+  <div id="user-info"></div>
+
+  <!-- 河道與酒杯 -->
+  <div id="river-path-container">
+    <div id="wine-cup">☕</div>
+  </div>
+
+  <!-- 對話框 -->
+  <div id="dialogue-box">
+    <div class="dialogue-inner" onclick="advanceDialogue()">
+      <div class="speaker-name narrator" id="speaker-name">旁白</div>
+      <div class="dialogue-text" id="dialogue-text"></div>
+      <div class="dialogue-continue" id="dialogue-continue">▼ 點擊繼續</div>
+    </div>
+  </div>
+
+  <!-- 選項 -->
+  <div id="choices-container"></div>
+
+  <!-- 訊息框 -->
+  <div id="message-box"></div>
+</div>
+
+<script>
+// ============ 音樂系統 - Web Audio API ============
+let audioCtx = null;
+let masterGain = null;
+let musicPlaying = false;
+let currentTrack = 'guqin';
+let musicTimers = [];
+let activeOscillators = [];
+let musicMenuOpen = false;
+
+// 五聲音階頻率（宮商角徵羽）- 符合中國古典風格
+const PENTATONIC = {
+  // 低音區
+  gong1: 130.81,  // 宮 C3
+  shang1: 146.83, // 商 D3
+  jue1: 164.81,   // 角 E3
+  zhi1: 196.00,   // 徵 G3
+  yu1: 220.00,    // 羽 A3
+  // 中音區
+  gong2: 261.63,  // 宮 C4
+  shang2: 293.66, // 商 D4
+  jue2: 329.63,   // 角 E4
+  zhi2: 392.00,   // 徵 G4
+  yu2: 440.00,    // 羽 A4
+  // 高音區
+  gong3: 523.25,  // 宮 C5
+  shang3: 587.33, // 商 D5
+  jue3: 659.25,   // 角 E5
+  zhi3: 783.99,   // 徵 G5
+  yu3: 880.00     // 羽 A5
+};
+
+// 初始化音訊系統
+function initAudio() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.4;
+    
+    // 加入混響效果（使用 convolver 模擬）
+    const reverbGain = audioCtx.createGain();
+    reverbGain.gain.value = 0.3;
+    
+    masterGain.connect(audioCtx.destination);
+  } catch (e) {
+    console.warn('Web Audio API 不支援：', e);
+  }
+}
+
+// 播放單個音符（古琴音色）
+function playGuqinNote(freq, startTime, duration, volume = 0.3) {
+  if (!audioCtx) return;
+  
+  // 主振盪器（正弦波，模擬古琴）
+  const osc = audioCtx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  
+  // 第二個振盪器（模擬泛音）
+  const osc2 = audioCtx.createOscillator();
+  osc2.type = 'sine';
+  osc2.frequency.value = freq * 2;
+  
+  // 第三個振盪器（高次泛音）
+  const osc3 = audioCtx.createOscillator();
+  osc3.type = 'sine';
+  osc3.frequency.value = freq * 3;
+  
+  // 增益包絡（ADSR）
+  const gainNode = audioCtx.createGain();
+  const gain2 = audioCtx.createGain();
+  const gain3 = audioCtx.createGain();
+  
+  gain2.gain.value = 0.15; // 泛音音量較小
+  gain3.gain.value = 0.05;
+  
+  // ADSR 包絡
+  gainNode.gain.setValueAtTime(0, startTime);
+  gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.05); // Attack
+  gainNode.gain.exponentialRampToValueAtTime(volume * 0.6, startTime + 0.3); // Decay
+  gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration); // Release
+  
+  // 連接
+  osc.connect(gainNode);
+  osc2.connect(gain2);
+  osc2.connect(gainNode);
+  osc3.connect(gain3);
+  osc3.connect(gainNode);
+  gainNode.connect(masterGain);
+  
+  osc.start(startTime);
+  osc2.start(startTime);
+  osc3.start(startTime);
+  osc.stop(startTime + duration);
+  osc2.stop(startTime + duration);
+  osc3.stop(startTime + duration);
+  
+  activeOscillators.push(osc, osc2, osc3);
+}
+
+// 播放笛子音色
+function playFluteNote(freq, startTime, duration, volume = 0.2) {
+  if (!audioCtx) return;
+  
+  const osc = audioCtx.createOscillator();
+  osc.type = 'triangle';
+  osc.frequency.value = freq;
+  
+  // 顫音
+  const vibrato = audioCtx.createOscillator();
+  const vibratoGain = audioCtx.createGain();
+  vibrato.frequency.value = 5;
+  vibratoGain.gain.value = 3;
+  vibrato.connect(vibratoGain);
+  vibratoGain.connect(osc.frequency);
+  
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.setValueAtTime(0, startTime);
+  gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.1);
+  gainNode.gain.linearRampToValueAtTime(volume * 0.8, startTime + duration * 0.7);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+  
+  osc.connect(gainNode);
+  gainNode.connect(masterGain);
+  
+  osc.start(startTime);
+  vibrato.start(startTime);
+  osc.stop(startTime + duration);
+  vibrato.stop(startTime + duration);
+  
+  activeOscillators.push(osc, vibrato);
+}
+
+// 播放流水環境音
+function playWaterAmbience(startTime, duration) {
+  if (!audioCtx) return;
+  
+  // 使用噪聲模擬流水
+  const bufferSize = audioCtx.sampleRate * duration;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  
+  // 生成粉紅噪聲（較柔和）
+  let b0 = 0, b1 = 0, b2 = 0;
+  for (let i = 0; i < bufferSize; i++) {
+    const white = Math.random() * 2 - 1;
+    b0 = 0.99 * b0 + 0.03 * white;
+    b1 = 0.98 * b1 + 0.04 * white;
+    b2 = 0.96 * b2 + 0.08 * white;
+    data[i] = (b0 + b1 + b2) * 0.1;
+  }
+  
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  
+  // 低通濾波器，使聲音更柔和
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 800;
+  
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.value = 0.15;
+  
+  source.connect(filter);
+  filter.connect(gainNode);
+  gainNode.connect(masterGain);
+  
+  source.start(startTime);
+  source.stop(startTime + duration);
+}
+
+// 播放風聲環境音
+function playWindAmbience(startTime, duration) {
+  if (!audioCtx) return;
+  
+  const bufferSize = audioCtx.sampleRate * duration;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  
+  let last = 0;
+  for (let i = 0; i < bufferSize; i++) {
+    const white = Math.random() * 2 - 1;
+    last = last * 0.98 + white * 0.02;
+    data[i] = last * 2;
+  }
+  
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 400;
+  filter.Q.value = 0.5;
+  
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.value = 0.08;
+  
+  source.connect(filter);
+  filter.connect(gainNode);
+  gainNode.connect(masterGain);
+  
+  source.start(startTime);
+  source.stop(startTime + duration);
+}
+
+// ============ 音樂曲目 ============
+
+// 曲目1：古琴悠韻（空靈悠遠）
+function playGuqinTrack() {
+  stopAllMusic();
+  if (!audioCtx) return;
+  
+  const melody = [
+    { note: PENTATONIC.gong2, dur: 1.5 },
+    { note: PENTATONIC.jue2, dur: 1.0 },
+    { note: PENTATONIC.zhi2, dur: 1.2 },
+    { note: PENTATONIC.gong2, dur: 1.8 },
+    { note: null, dur: 0.5 }, // 休止
+    { note: PENTATONIC.shang2, dur: 1.2 },
+    { note: PENTATONIC.jue2, dur: 1.0 },
+    { note: PENTATONIC.yu2, dur: 1.5 },
+    { note: PENTATONIC.gong2, dur: 2.0 },
+    { note: null, dur: 0.8 },
+    { note: PENTATONIC.zhi2, dur: 1.0 },
+    { note: PENTATONIC.yu2, dur: 1.2 },
+    { note: PENTATONIC.gong3, dur: 1.5 },
+    { note: PENTATONIC.zhi2, dur: 1.8 },
+    { note: PENTATONIC.jue2, dur: 2.0 },
+    { note: null, dur: 1.0 },
+  ];
+  
+  function playLoop() {
+    if (!musicPlaying || currentTrack !== 'guqin') return;
+    
+    let time = audioCtx.currentTime + 0.1;
+    let totalDuration = 0;
+    
+    melody.forEach(m => {
+      if (m.note) {
+        playGuqinNote(m.note, time, m.dur * 1.5, 0.25);
+      }
+      time += m.dur;
+      totalDuration += m.dur;
+    });
+    
+    // 循環
+    const timer = setTimeout(() => {
+      if (musicPlaying && currentTrack === 'guqin') {
+        playLoop();
+      }
+    }, totalDuration * 1000);
+    musicTimers.push(timer);
+  }
+  
+  playLoop();
+}
+
+// 曲目2：竹林清風（清新自然）
+function playBambooTrack() {
+  stopAllMusic();
+  if (!audioCtx) return;
+  
+  const melody = [
+    { note: PENTATONIC.gong3, dur: 0.8 },
+    { note: PENTATONIC.jue3, dur: 0.6 },
+    { note: PENTATONIC.zhi2, dur: 1.0 },
+    { note: PENTATONIC.yu2, dur: 0.8 },
+    { note: PENTATONIC.gong2, dur: 1.5 },
+    { note: null, dur: 0.4 },
+    { note: PENTATONIC.shang3, dur: 0.7 },
+    { note: PENTATONIC.jue3, dur: 0.9 },
+    { note: PENTATONIC.zhi3, dur: 1.2 },
+    { note: PENTATONIC.yu3, dur: 0.8 },
+    { note: PENTATONIC.gong3, dur: 1.8 },
+    { note: null, dur: 0.6 },
+    { note: PENTATONIC.zhi2, dur: 1.0 },
+    { note: PENTATONIC.jue2, dur: 1.2 },
+    { note: PENTATONIC.gong2, dur: 2.0 },
+    { note: null, dur: 1.2 },
+  ];
+  
+  function playLoop() {
+    if (!musicPlaying || currentTrack !== 'bamboo') return;
+    
+    let time = audioCtx.currentTime + 0.1;
+    let totalDuration = 0;
+    
+    melody.forEach(m => {
+      if (m.note) {
+        playFluteNote(m.note, time, m.dur * 1.3, 0.18);
+      }
+      time += m.dur;
+      totalDuration += m.dur;
+    });
+    
+    // 環境音：風聲
+    playWindAmbience(audioCtx.currentTime, totalDuration);
+    
+    const timer = setTimeout(() => {
+      if (musicPlaying && currentTrack === 'bamboo') {
+        playLoop();
+      }
+    }, totalDuration * 1000);
+    musicTimers.push(timer);
+  }
+  
+  playLoop();
+}
+
+// 曲目3：曲水流觴（流水潺潺）
+function playStreamTrack() {
+  stopAllMusic();
+  if (!audioCtx) return;
+  
+  const melody = [
+    { note: PENTATONIC.yu2, dur: 0.8 },
+    { note: PENTATONIC.zhi2, dur: 0.6 },
+    { note: PENTATONIC.jue2, dur: 0.7 },
+    { note: PENTATONIC.gong2, dur: 1.2 },
+    { note: PENTATONIC.shang2, dur: 0.9 },
+    { note: PENTATONIC.jue2, dur: 1.0 },
+    { note: null, dur: 0.5 },
+    { note: PENTATONIC.zhi2, dur: 0.8 },
+    { note: PENTATONIC.yu2, dur: 1.0 },
+    { note: PENTATONIC.gong2, dur: 1.5 },
+    { note: PENTATONIC.zhi2, dur: 0.7 },
+    { note: PENTATONIC.jue2, dur: 1.2 },
+    { note: PENTATONIC.gong2, dur: 2.0 },
+    { note: null, dur: 1.0 },
+  ];
+  
+  function playLoop() {
+    if (!musicPlaying || currentTrack !== 'stream') return;
+    
+    let time = audioCtx.currentTime + 0.1;
+    let totalDuration = 0;
+    
+    melody.forEach(m => {
+      if (m.note) {
+        playGuqinNote(m.note, time, m.dur * 1.4, 0.2);
+      }
+      time += m.dur;
+      totalDuration += m.dur;
+    });
+    
+    // 流水環境音
+    playWaterAmbience(audioCtx.currentTime, totalDuration);
+    
+    const timer = setTimeout(() => {
+      if (musicPlaying && currentTrack === 'stream') {
+        playLoop();
+      }
+    }, totalDuration * 1000);
+    musicTimers.push(timer);
+  }
+  
+  playLoop();
+}
+
+// 曲目4：月下獨酌（靜謐空靈）
+function playMoonlightTrack() {
+  stopAllMusic();
+  if (!audioCtx) return;
+  
+  const melody = [
+    { note: PENTATONIC.gong3, dur: 2.0 },
+    { note: null, dur: 0.5 },
+    { note: PENTATONIC.yu2, dur: 1.5 },
+    { note: PENTATONIC.zhi2, dur: 1.8 },
+    { note: null, dur: 0.8 },
+    { note: PENTATONIC.jue2, dur: 1.2 },
+    { note: PENTATONIC.shang2, dur: 1.5 },
+    { note: PENTATONIC.gong2, dur: 2.5 },
+    { note: null, dur: 1.0 },
+    { note: PENTATONIC.yu2, dur: 1.8 },
+    { note: PENTATONIC.gong2, dur: 2.0 },
+    { note: null, dur: 1.5 },
+  ];
+  
+  function playLoop() {
+    if (!musicPlaying || currentTrack !== 'moonlight') return;
+    
+    let time = audioCtx.currentTime + 0.1;
+    let totalDuration = 0;
+    
+    melody.forEach(m => {
+      if (m.note) {
+        // 使用較柔和的音色
+        playGuqinNote(m.note, time, m.dur * 1.8, 0.18);
+        // 低八度陪音
+        playGuqinNote(m.note / 2, time, m.dur * 1.8, 0.08);
+      }
+      time += m.dur;
+      totalDuration += m.dur;
+    });
+    
+    // 輕柔風聲
+    playWindAmbience(audioCtx.currentTime, totalDuration);
+    
+    const timer = setTimeout(() => {
+      if (musicPlaying && currentTrack === 'moonlight') {
+        playLoop();
+      }
+    }, totalDuration * 1000);
+    musicTimers.push(timer);
+  }
+  
+  playLoop();
+}
+
+// 停止所有音樂
+function stopAllMusic() {
+  musicTimers.forEach(t => clearTimeout(t));
+  musicTimers = [];
+  
+  activeOscillators.forEach(osc => {
+    try { osc.stop(); } catch (e) {}
+  });
+  activeOscillators = [];
+}
+
+// 切換曲目
+function switchTrack(track, event) {
+  if (event) event.stopPropagation();
+  
+  currentTrack = track;
+  
+  // 更新選單 UI
+  document.querySelectorAll('.music-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.track === track);
+  });
+  
+  if (track === 'off') {
+    stopAllMusic();
+    musicPlaying = false;
+    document.getElementById('music-btn').classList.remove('playing');
+    document.getElementById('music-btn').textContent = '♪';
+    document.getElementById('volume-control').classList.remove('show');
+    return;
+  }
+  
+  initAudio();
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  
+  musicPlaying = true;
+  document.getElementById('music-btn').classList.add('playing');
+  document.getElementById('music-btn').textContent = '♫';
+  document.getElementById('volume-control').classList.add('show');
+  
+  // 根據曲目播放
+  switch (track) {
+    case 'guqin': playGuqinTrack(); break;
+    case 'bamboo': playBambooTrack(); break;
+    case 'stream': playStreamTrack(); break;
+    case 'moonlight': playMoonlightTrack(); break;
+  }
+  
+  // 關閉選單
+  setTimeout(() => {
+    document.getElementById('music-menu').classList.remove('show');
+    musicMenuOpen = false;
+  }, 200);
+}
+
+// 切換音樂選單
+function toggleMusicMenu(event) {
+  event.stopPropagation();
+  musicMenuOpen = !musicMenuOpen;
+  document.getElementById('music-menu').classList.toggle('show', musicMenuOpen);
+  
+  // 如果選單打開時音量控制也顯示，則隱藏
+  if (musicMenuOpen) {
+    document.getElementById('volume-control').classList.remove('show');
+  } else if (musicPlaying) {
+    document.getElementById('volume-control').classList.add('show');
+  }
+}
+
+// 音量控制
+document.getElementById('volume-slider').addEventListener('input', (e) => {
+  const vol = e.target.value / 100;
+  if (masterGain) {
+    masterGain.gain.value = vol;
+  }
+  document.getElementById('volume-label').textContent = e.target.value + '%';
+});
+
+// 點擊其他地方關閉選單
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#music-menu') && !e.target.closest('#music-btn')) {
+    document.getElementById('music-menu').classList.remove('show');
+    musicMenuOpen = false;
+  }
+});
+
+// ============ 遊戲系統 ============
+
+// 圖片資源
+const images = {
+  opening: 'https://i.postimg.cc/MHjqvPbv/dreamina-2025-09-08-9840-An-elegant-and-scholarly-young-man-from.jpg',
+  eraStart: 'https://i.postimg.cc/P547mg40/dreamina-2025-09-08-7451-A-wide-panoramic-view-of-a-magnificent.jpg',
+  nineRankSystem: 'https://i.postimg.cc/9XgFBkxR/dreamina-2025-09-08-1870-A-detailed-illustration-of-a-bureaucrati.jpg',
+  localRecommendation: 'https://i.postimg.cc/13fWq88V/dreamina-2025-09-08-9698-The-same-scholar-now-with-a-confident-e.jpg',
+  pureStream: 'https://i.postimg.cc/ZncGfFtP/dreamina-2025-09-09-9887-A-scene-of-defiance-A-young-scholar-sta.jpg',
+  lantingGathering: 'https://i.postimg.cc/ZqYD5wrZ/dreamina-2025-09-08-3094-A-lavishly-decorated-indoor-scene-A-you.jpg',
+  writePoem: 'https://i.postimg.cc/qqNDdbYW/han-shi-di-qian-dai-gei-guan-yuan-202605171457.jpg',
+  drinkWine: 'https://i.postimg.cc/ZncGfFtP/dreamina-2025-09-09-9887-A-scene-of-defiance-A-young-scholar-sta.jpg',
+  joinXieClan: 'https://i.postimg.cc/K8Q675rm/dreamina-2025-09-09-4138-An-elegant-garden-scene-A-scholar-is-co.jpg',
+  reclusiveLife: 'https://i.postimg.cc/cC4TZjkj/dreamina-2025-09-10-6620-A-group-of-scholars-gathered-in-a-bambo.jpg',
+  endOfReclusiveLife: 'https://i.postimg.cc/cC4TZjkj/dreamina-2025-09-10-6620-A-group-of-scholars-gathered-in-a-bambo.jpg',
+  strongCollect: 'https://i.postimg.cc/25DDT5gx/dreamina-2025-09-08-8595-A-chaotic-and-despair-A-soldier.jpg',
+  negotiateGrain: 'https://i.postimg.cc/t4Q1hfTd/dreamina-2025-09-08-6062-A-young-scholar-in-simple-robes-talking.jpg',
+  scholarlyPath: 'https://i.postimg.cc/cC4TZjkj/dreamina-2025-09-10-6620-A-group-of-scholars-gathered-in-a-bambo.jpg',
+  eightPrincesRebellion: 'https://i.postimg.cc/V6K3PjLY/dreamina-2025-09-09-4095-A-chaotic-and-dynamic-battle-scene-Sold.jpg',
+  followPrince: 'https://i.postimg.cc/HxpFFtdZ/wang-fu-ting-yuan-fan-wang-mi-tan-202605171458.jpg',
+  surviveRebellion: 'https://i.postimg.cc/0Qnp3XcD/shi-ren-tian-jian-gong-geng-yin-ju-sheng-huo-202605151530.jpg',
+  fateWithLuBrothers: 'https://i.postimg.cc/VNwhbFr5/lu-ji-lin-xing-si-gu-xiang-202605171458.jpg',
+  fiveBarbariansUprising: 'https://i.postimg.cc/4dR3hRzK/dreamina-2025-09-10-9847-A-historical-style-map-illustration-of-a.jpg',
+  easternJinMigration: 'https://i.postimg.cc/SNWb2wQC/zhong-duo-wei-jin-nan-bei-chao-wen-ren-tao-nan-dao-nan-fang-gong-bi-hua-shui-mo-hua-cai-se-feng-ge-202605151551.jpg',
+  surviveInNorth: 'https://i.postimg.cc/Jzt0fqrh/dreamina-2025-09-10-4186-A-solitary-scholar-is-working-a-small-pa.jpg',
+  lantingGatheringEvent: 'https://i.postimg.cc/NFvDWs66/Spring-outing-scholars-drinking-202605171457.jpg',
+  windingStreamGame: 'https://i.postimg.cc/Dwkjtccq/xi-liu-piao-fu-qing-tong-jiu-bei-202605171456.jpg',
+  lantingGatheringAftermath: 'https://i.postimg.cc/wThZxP3x/Hand-writing-calligraphy-on-paper-202605171456.jpg',
+  battleOfFeiRiver: 'https://i.postimg.cc/yN7fNYtc/Battle-of-Fei-River-202605171456.jpg',
+  feiRiverVictory: 'https://i.postimg.cc/L8L7XWXR/dong-jin-jun-dui-sheng-li-qing-zhu-chang-jing-202605171456.jpg',
+  feiRiverDefeat: 'https://i.postimg.cc/XNZ0WQwy/Battlefield-after-defeat-sunset-202605171456.jpg',
+  meetRuanJi: 'https://i.postimg.cc/52LG0rtr/ruan-ji-zhang-xiao-lao-shu-zhu-lin-202605171456.jpg',
+  ruanJiFarwell: 'https://i.postimg.cc/DzQtCNk4/gong-bi-shui-mo-she-se-hua-wei-jin-nan-bei-chao-feng-ge-zhu-lin-shen-chu-yi-ge-gu-du-de-bai-se-shen-ying-bei-dui-zhe-guan-zhong-zheng-zhu-jian-zou-jin-nong-mi-de-zhu-lin-shen-chu-ta-de-shen-ying-yue-lai-yue-xiao-zui-zhong-xiao-shi-zai-zhu-lin-de-wu-qi-zhong-qian-jing-shi-ji-gan-ting-ba-de-zhu-zi-yuan-chu-shi-meng-long-de-shan-luan-dan-ya-de-qing-lu-yu-hui-bai-se-diao.jpg',
+  ruanJiReturn: 'https://i.postimg.cc/BQdkJ3JV/ruan-ji-zhun-bei-li-kai-zhu-lin-202605171457.jpg',
+  meetJiKang: 'https://i.postimg.cc/PJJ95rLW/chi-luo-shang-shen-da-tie-de-ji-kang-202605171457.jpg',
+  jiKangGuangling: 'https://i.postimg.cc/NM9C3CWj/Ji-Kang-playing-guqin-execution-202605171457.jpg',
+  jiKangSoulmate: 'https://i.postimg.cc/sx0FYZdV/Two-scholars-in-bamboo-garden-202605171457.jpg',
+  meetShanTao: 'https://i.postimg.cc/Z5wfChSj/Man-sitting-in-bamboo-forest-202605171457.jpg',
+  shanTaoRetire: 'https://i.postimg.cc/xjLtLmQL/Two-figures-walking-bamboo-path-202605171457.jpg',
+  shanTaoOfficial: 'https://i.postimg.cc/xjLtLmQL/Two-figures-walking-bamboo-path-202605171457.jpg'
+};
+
+// 場景數據（完整保留原文本）
+const gameData = {
+  playerName: '',
+  currentScene: 'opening',
+  scenes: {
+    'opening': {
+      text: '歡迎來到魏晉南北朝，這是一個充滿動盪與變革的時代。西晉的政治鬥爭、世家大族的崛起與玄學的盛行，都將成為你旅程中的關鍵。你是一名出身寒微的年輕士子，將如何在這個時代生存、奮鬥，並寫下屬於你的傳奇？\n\n請輸入你的姓名，開始你的傳奇旅程。',
+      image: 'opening',
+      choices: [],
+    },
+    'eraStart': {
+      text: '公元265年，(前段所取名)身處風雨飄搖的時代。三國鼎立的局面已近尾聲，司馬家族的權力日益膨脹。你是一名出身寒微的年輕士子，懷抱著經世濟民的理想。此時，你面前有兩個選擇：是投身於政治鬥爭的漩渦，還是專注於文化藝術的追求？',
+      image: 'eraStart',
+      choices: [
+        { text: '投身政治，尋求建功立業', nextScene: 'nineRankSystem' },
+        { text: '專注學術，潛心研究玄學或書法', nextScene: 'scholarlyPath' }
+      ]
+    },
+    'nineRankSystem': {
+      text: '你選擇了投身政治。然而，你很快發現晉朝的官僚體系並非你所想。這是一個由九品官人法主導的社會，官員的選拔依據「品」來區分，而這個「品」很大程度上取決於家族背景和地方長官的推薦。這也導致了「上品無寒門，下品無世族」的現象。作為一名寒門子弟，你的起點遠低於那些顯赫的世家大族。你必須比他們付出更多的努力，才能獲得晉升。',
+      image: 'nineRankSystem',
+      choices: [
+        { text: '接受現實，從低品官員做起', nextScene: 'grainShortage' },
+        { text: '放棄政治理想，轉而專注藝術', nextScene: 'pureStream' }
+      ]
+    },
+    'grainShortage': {
+      text: '你被任命為地方小吏，負責管理一處郡縣的政務。然而，上任不久，當地便遭遇了嚴重的旱災，百姓饑荒，流民四起。郡守要求你在三日內解決糧食問題，否則將嚴懲不貸。你發現郡縣糧倉空虛，而糧食卻全掌握在地方豪強地主手中。',
+      image: 'negotiateGrain',
+      choices: [
+        { text: '試圖與豪強地主協商，說服他們捐糧', nextScene: 'localRecommendation' },
+        { text: '強行徵收豪強地主的糧食，解決百姓燃眉之急', nextScene: 'strongCollect' }
+      ]
+    },
+    'localRecommendation': {
+      text: '你憑藉自己的智慧和口才，成功說服了豪強地主捐出部分糧食。雖然這損害了他們的利益，但你解決了糧食短缺，贏得了百姓的愛戴。你的聲望因此提高，地方長官也對你刮目相看。就在你以為仕途將會順利時，你遇到了九品官人法下最核心的一環：中正官的品評。',
+      image: 'localRecommendation',
+      choices: [{ text: '面對中正官的品評', nextScene: 'lantingGathering' }]
+    },
+    'pureStream': {
+      text: '你拒絕了所有不公正的交易，堅守清流之名。你的行為被一位路過的陳郡謝氏名士看在眼裡。他對你的才學與氣節大為讚賞，並向你拋出橄欖枝。',
+      image: 'pureStream',
+      choices: [
+        { text: '接受謝氏邀請，投身東晉門閥', nextScene: 'joinXieClan' },
+        { text: '婉拒邀請，繼續隱居鄉野', nextScene: 'reclusiveLife' }
+      ]
+    },
+    'lantingGathering': {
+      text: '來自世家大族琅琊王氏的中正官來到你的家鄉，對你進行品評。他審視著你的才行（才能與品德），也審視著你的家世（家族背景）。你治水、賑災的政績固然出色，但在他眼裡，你寒微的家世才是決定你品級的關鍵。他暗示你，若想獲得更高的品級，需要用財物來表示誠意，以打點上級。',
+      image: 'lantingGathering',
+      choices: [
+        { text: '忍痛賄賂中正官，以求獲得高品', nextScene: 'writePoem' },
+        { text: '堅守清流風骨，拒絕賄賂', nextScene: 'drinkWine' }
+      ]
+    },
+    'writePoem': {
+      text: '你為了仕途，忍痛拿出了所有積蓄賄賂中正官。他心滿意足，將你的品級定為七品。你因此獲得了晉升，但在朝廷，你因為缺乏世家背景，仍被視為「胥吏」（辦事員）。你的權力基礎並不穩固，一旦中正官倒台，你的仕途也會受到嚴重影響。\n\n這個看似公平的制度，實則早已淪為世家大族鞏固權力的工具。中正官本應公正地評定人才，但他們大多出身於權貴家族，更看重家世而非才學。你用金錢換來的七品，便是這種腐敗的縮影。在「上品無寒門，下品無世族」的現實下，官職的選拔不再以能力為依據，而是由出身決定。這不僅阻斷了像你這樣有才能的寒門子弟的上升之路，也使得整個朝廷充滿了庸碌無為、只知享樂的貴族。朝政因此日益敗壞現代，社會矛盾不斷激化。你雖然僥倖進入了體制，卻也深知自己不過是這場不公遊戲中的一名過客，隨時可能被時代的洪流所淘汰。你的仕途，將在八王之亂的戰火中迎來真正的考驗。',
+      image: 'writePoem',
+      choices: [{ text: '繼續在體制內奮鬥，迎接八王之亂', nextScene: 'eightPrincesRebellion' }]
+    },
+    'drinkWine': {
+      text: '你的清流風骨被陳郡謝氏所注意。謝氏是當時與王氏抗衡的另一大世族，他們看重你的才能和氣節，向你拋出橄欖枝。他們承諾，只要你加入謝氏陣營，將會給你提供展現才華的舞台。',
+      image: 'drinkWine',
+      choices: [
+        { text: '加入謝氏陣營，獲得庇護', nextScene: 'joinXieClan' },
+        { text: '婉拒邀請，繼續獨立，保持中立', nextScene: 'reclusiveLife' }
+      ]
+    },
+    'joinXieClan': {
+      text: '你接受了謝氏的邀請，投身門閥政治。在當時，南北方士人南渡，帶來了人口與文化，也促使東晉門閥政治達到鼎盛。其中，琅琊王氏與陳郡謝氏是最為顯赫的兩大世族，所謂「王與馬，共天下」與「王謝」並稱，便是對當時權力格局的真實寫照。\n\n你追隨的謝氏，在謝安的帶領下，風采卓絕，聲名遠播。謝安以其鎮定自若的風度與運籌帷幄的智慧而聞名。現在，你作為謝氏的一員，將面對你人生中最重要的一場戰役：淝水之戰。',
+      image: 'joinXieClan',
+      choices: [{ text: '前往淝水，參與作戰', nextScene: 'battleOfFeiRiver' }]
+    },
+    'battleOfFeiRiver': {
+      text: '公元383年，北方前秦苻堅率領百萬大軍南下，東晉朝廷上下惶惶不安。你作為謝氏陣營的一員，被派往前線，與主帥謝玄一同迎敵。在巨大的壓力下，你們討論著作戰策略。\n\n一位將領提出，應該利用數量優勢直接正面迎擊，以展現東晉的勇氣。但謝玄卻冷靜地分析，認為應該採取誘敵之計，先示弱後出擊，利用前秦軍隊的驕傲與混亂，尋找突破口。',
+      image: 'battleOfFeiRiver',
+      choices: [
+        { text: '冒險行事，正面迎擊', nextScene: 'feiRiverDefeat' },
+        { text: '支持謝玄，採取誘敵之計', nextScene: 'feiRiverVictory' }
+      ]
+    },
+    'feiRiverVictory': {
+      text: '你選擇相信謝玄，支持他的誘敵之計。當東晉軍隊後退時，苻堅的百萬大軍果然陷入混亂，互相踐踏。你們乘勢追擊，以八萬之兵大破百萬大軍，創造了歷史上的奇蹟！\n\n這場淝水之戰的勝利，不僅拯救了東晉，也讓謝氏的聲望達到頂峰。你因為出色的表現而備受讚譽，成為了謝氏家族中的重要人物。',
+      image: 'feiRiverVictory',
+      choices: [{ text: '開啟東晉新篇章，重新開始遊戲', nextScene: 'opening' }]
+    },
+    'feiRiverDefeat': {
+      text: '你選擇了冒進，建議直接與前秦大軍正面對抗。然而，敵我兵力懸殊，你的魯莽行為很快被前秦軍隊擊潰。儘管你奮力作戰，但面對數倍於己的敵人，你的軍隊如同螳臂當車，瞬間瓦解。你身負重傷，看著身邊的戰友一個個倒下，你意識到個人的勇氣在絕對的力量面前多麼渺小。\n\n戰敗的消息傳回朝廷，東晉士氣大跌，而你的冒進也成為了眾人指責的對象。你因此被免職，聲名狼藉，被迫離開了朝堂。你的仕途，就此終結。',
+      image: 'feiRiverDefeat',
+      choices: [{ text: '回到起點，重新開始遊戲', nextScene: 'opening' }]
+    },
+    'scholarlyPath': {
+      text: '你選擇了遠離官場，專注於學術研究。你帶著隨身書卷，離開了喧囂的都城，來到一片幽靜的竹林深處。這裡清風拂面，修竹搖曳，你感到前所未有的寧靜與自由。',
+      image: 'scholarlyPath',
+      choices: [{ text: '繼續探索，尋找志同道合之人', nextScene: 'reclusiveLife' }]
+    },
+    'reclusiveLife': {
+      text: '一日，你正獨自彈琴，琴聲悠遠，忽聞遠處傳來陣陣嘯聲，既似龍吟，又似虎嘯。你尋聲而去，發現一群名士正聚在竹林深處，他們便是阮籍、嵇康、山濤等「竹林七賢」。他們不談時政，只論玄學。你感受到他們的灑脫不羈與深沉憂鬱。此時，你心中充滿了好奇，你更想了解哪一位名士？',
+      image: 'reclusiveLife',
+      choices: [
+        { text: '尋找阮籍，聽他的長嘯', nextScene: 'meetRuanJi' },
+        { text: '尋找嵇康，看他打鐵', nextScene: 'meetJiKang' },
+        { text: '尋找山濤，與他靜坐', nextScene: 'meetShanTao' },
+        { text: '回到主線，繼續探索', nextScene: 'endOfReclusiveLife' }
+      ]
+    },
+    'meetRuanJi': {
+      text: '你獨自撫琴，琴音悠遠，遠處傳來陣陣嘯聲，你辨識出這是阮籍的嘯聲。他的嘯聲時而低沉悲涼，時而高亢激昂，彷彿訴說著對世俗的不滿與無奈。你來到竹林深處，他衣衫不整，正對著一棵老樹長嘯。見到你，他沒有說話，只是拿起酒葫蘆灌了一口，遞給你。你可以選擇與他共飲，或向他詢問嘯聲的緣由。',
+      image: 'meetRuanJi',
+      choices: [
+        { text: '與他共飲', nextScene: 'ruanJiReturn' },
+        { text: '向他詢問嘯聲的緣由', nextScene: 'ruanJiFarwell' }
+      ]
+    },
+    'ruanJiFarwell': {
+      text: '【結局：嘯聲遠去】\n\n你與阮籍在竹林中度過了一段時光。他感嘆世事變遷，知己難求。他將一把玉笛贈予你，作為紀念。當你告別時，他沒有回頭，只是繼續他的長嘯，身形漸行漸遠，最終消失在竹林深處。從此，世間再無人知其所蹤，只留下悠遠的嘯聲和那把玉笛。',
+      image: 'ruanJiFarwell',
+      choices: [{ text: '重新開始遊戲', nextScene: 'opening' }]
+    },
+    'ruanJiReturn': {
+      text: '【結局：阮郎歸】\n\n你的出現讓阮籍感到了一絲慰藉。他決定不再逃避，而是回去面對現實。他告訴你，他要用他的方式去影響這個時代，無論是入朝為官，還是繼續他的隱居生活。他將自己的著作贈予你，希望你能將他的思想傳承下去。最終，他回到洛陽，繼續他的仕途，但你時常能收到他的信件，信中充滿了他對你的思念和對自由的嚮往。',
+      image: 'ruanJiReturn',
+      choices: [{ text: '重新開始遊戲', nextScene: 'opening' }]
+    },
+    'meetJiKang': {
+      text: '你獨自撫琴，琴音悠遠，遠處傳來陣陣嘯聲。這嘯聲夾雜著金屬碰撞的聲音，你知道這是嵇康正在打鐵。他的嘯聲充滿了不羈與傲氣，你決定前往探尋。你來到一處打鐵鋪，只見嵇康赤裸著上身，揮汗如雨地錘打著鐵塊。他的嘯聲與打鐵聲交織在一起，形成一種奇特的韻律。',
+      image: 'meetJiKang',
+      choices: [
+        { text: '向他學習打鐵', nextScene: 'jiKangSoulmate' },
+        { text: '與他討論琴音與打鐵聲的融合', nextScene: 'jiKangGuangling' }
+      ]
+    },
+    'jiKangGuangling': {
+      text: '【結局：廣陵絕響】\n\n你與嵇康的友情日益深厚。然而，你發現他的傲氣與不屈正在為他帶來麻煩。最終，他因不肯屈服於權勢而被捕入獄。行刑前，他在刑場上彈奏了最後一曲《廣陵散》，曲畢，他將古琴交給你，坦然赴死。你悲痛萬分，但你明白，他的死是為了他的自由與尊嚴。你將他的《廣陵散》傳承下去，讓他的精神永遠流傳。',
+      image: 'jiKangGuangling',
+      choices: [{ text: '重新開始遊戲', nextScene: 'opening' }]
+    },
+    'jiKangSoulmate': {
+      text: '【結局：竹林知音】\n\n你的出現讓嵇康感到了一絲溫暖。他不再那麼孤獨，也不再那麼桀驁不馴。他告訴你，他決定收斂鋒芒，為了你，也為了他的家人。他將打鐵鋪搬到你的住所附近，兩人時常以琴音與打鐵聲相和，共同創作新的樂曲。你們的友情成為了世人稱羨的佳話，而他也因為你的存在，改變了自己的人生軌跡。',
+      image: 'jiKangSoulmate',
+      choices: [{ text: '重新開始遊戲', nextScene: 'opening' }]
+    },
+    'meetShanTao': {
+      text: '你獨自撫琴，琴音悠遠，遠處傳來陣陣嘯聲。這嘯聲平靜而穩重，你知道這是山濤的聲音。他的嘯聲沒有悲涼，也沒有傲氣，只有一種超然物外的寧靜。你來到一片茂密的竹林，只見山濤正坐在竹林中靜坐。他衣著整潔，神態平和。見到你，他微微一笑，向你點了點頭。',
+      image: 'meetShanTao',
+      choices: [
+        { text: '與他一同靜坐', nextScene: 'shanTaoRetire' },
+        { text: '向他請教處世之道', nextScene: 'shanTaoOfficial' }
+      ]
+    },
+    'shanTaoRetire': {
+      text: '【結局：歸隱山林】\n\n你與山濤在竹林中度過了一段時光。你被他的平和所感染，決定放棄世俗的紛爭，與他一同隱居山林。你們兩人以竹林為家，以琴為友，過著與世無爭的生活。你最終成為了一名隱士，但你的名聲卻在民間流傳開來，被後人稱頌。',
+      image: 'shanTaoRetire',
+      choices: [{ text: '重新開始遊戲', nextScene: 'opening' }]
+    },
+    'shanTaoOfficial': {
+      text: '【結局：入世為官】\n\n山濤認為，你的才華不應被埋沒。他向你推薦入朝為官，希望你能為國家做出貢獻。他告訴你，他會在你身邊支持你，為你排憂解難。最終，你選擇入世為官，在山濤的幫助下，你一步步高升，成為了一名備受尊敬的官員。你們兩人一個在朝，一個在野，但心靈卻緊密相連，共同為這個時代做出貢獻。',
+      image: 'shanTaoOfficial',
+      choices: [{ text: '重新開始遊戲', nextScene: 'opening' }]
+    },
+    'endOfReclusiveLife': {
+      text: '你與竹林七賢的故事雖然充滿了浪漫與超脫，但這也無法阻擋政治的鐵蹄。隨著司馬氏的權力鞏固，他們對清談與率性之風的容忍度越來越低。嵇康因其不肯與世俗同流合污，最終被司馬昭以「非湯武而薄周孔」的罪名處死，成為了政治鬥爭的犧牲品。他的死，宣告了竹林七賢精神世界的崩潰，也標誌著魏晉風度的消逝。',
+      image: 'endOfReclusiveLife',
+      choices: [{ text: '重新開始遊戲', nextScene: 'opening' }]
+    },
+    'strongCollect': {
+      text: '你試圖強行徵收豪強地主的糧食，但這股力量遠超出你的想像。當你帶領著人手來到豪強的莊園時，迎接你的並非順從，而是手持兵器的家丁與早已聞訊趕來的地方官員。他們宣稱你違抗朝廷律法，擅自發兵，並將你與你的追隨者視為叛亂分子。你勢單力薄，無法與豪強和地方勢力聯合的力量抗衡。在混亂中，你的追隨者四散而逃，而你則被當場扣押。昔日百姓的敬仰瞬間化為烏有，他們眼中的你不再是救世主，而是魯莽的失敗者。你被罷官免職，所有的政治理想與抱負都隨之破滅。你深刻地體會到，在這個門閥當道的時代，個人的正義與勇氣在龐大的權力面前是多麼微不足道。',
+      image: 'strongCollect',
+      choices: [{ text: '重新開始遊戲', nextScene: 'opening' }]
+    },
+    'negotiateGrain': {
+      text: '你憑藉自己的智慧和口才，成功說服了豪強地主的捐出部分糧食。雖然這損害了他們的利益，但你解決了糧食短缺，贏得了百姓的愛戴。你的聲望因此提高，地方長官也對你刮目相看。就在你以為仕途將會順利時，你遇到了九品官人法下最核心的一環：中正官的品評。',
+      image: 'negotiateGrain',
+      choices: [{ text: '面對中正官的品評', nextScene: 'lantingGathering' }]
+    },
+    'eightPrincesRebellion': {
+      text: '八王之亂長達十六年，期間戰火連綿不絕，朝廷對全國的控制力逐漸瓦解。戰事不僅限於諸王間的內鬥，還包括氐人齊萬年的叛亂，以及成漢和漢趙政權對西晉的長期戰爭。南方也動盪不安，先後爆發了陳敏、杜曾、王如及張昌等人的起義。這些持續不斷的戰事對全國造成了嚴重的破壞。饑荒與瘟疫頻繁發生，迫使無數漢人離開家園，成為了流離失所的難民。這些流民為了生存，紛紛選擇投身軍隊，在混亂中尋求一線生機。在這個動盪的時代，加入軍隊不僅是為了生存，也是為了在戰火中尋找晉升的機會，甚至可能在亂世中建立新的霸業。',
+      image: 'eightPrincesRebellion',
+      choices: [
+        { text: '在亂世中尋求晉身，投身八王之亂', nextScene: 'followPrince' },
+        { text: '面對即將到來的「五胡亂華」', nextScene: 'fiveBarbariansUprising' }
+      ]
+    },
+    'followPrince': {
+      text: '你選擇了主動投身這場權力鬥爭。在眾多王爺中，你決定追隨才華出眾的成都王司馬穎。你憑藉才能獲得了他的賞識，並與同為文人的陸機、陸雲兄弟結為好友。你們三人常常在一起談論天下大勢，感嘆身不由己。然而，隨著成都王權勢的擴大，他也成為了其他王爺的眼中釘。你和陸機兄弟的命運，也因此與成都王緊密相連。',
+      image: 'followPrince',
+      choices: [{ text: '與陸機兄弟一同面對未知的命運', nextScene: 'fateWithLuBrothers' }]
+    },
+    'surviveRebellion': {
+      text: '你選擇了遠離政治漩渦，尋求生存之道。你帶著家人逃離了紛亂的都城，在鄉野間過著清貧但安定的生活。儘管戰火仍舊蔓延，但你成功地在這場亂世中保護了自己和家人。',
+      image: 'surviveRebellion',
+      choices: [{ text: '重新開始遊戲', nextScene: 'opening' }]
+    },
+    'fateWithLuBrothers': {
+      text: '公元303年，成都王司馬穎與河間王司馬顒聯手討伐長沙王司馬乂。你與陸機兄弟一同隨軍出征。然而，由於戰事失利，加上司馬穎身邊小人陷害，陸機被誣陷為謀反。儘管陸機多次解釋，司馬穎仍不相信。最終，你親眼目睹了陸機、陸雲兄弟被處死。他們至死不明白，自己不過是時代的棋子，為權力鬥爭而犧牲。陸機臨刑前，看著自己的孩子，感嘆道：「華亭鶴唳，豈可復聞乎！」（出自《世說新語》）。他的遺憾，成為了這個動盪時代的悲歌。',
+      image: 'fateWithLuBrothers',
+      choices: [{ text: '陸機兄弟的故事告一段落，回到主線劇情', nextScene: 'fiveBarbariansUprising' }]
+    },
+    'fiveBarbariansUprising': {
+      text: '在八王之亂的動盪之後，西晉的統治已經名存實亡。公元311年，胡人政權漢趙攻陷洛陽，晉懷帝被俘，史稱永嘉之禍。中原地區從此進入了長達一百多年的五胡十六國時代。在這個漢人政權崩潰、異族統治的時代，你何去何從？',
+      image: 'fiveBarbariansUprising',
+      choices: [
+        { text: '南渡，追隨世家大族建立東晉', nextScene: 'easternJinMigration' },
+        { text: '留在北方，掙扎求存', nextScene: 'surviveInNorth' }
+      ]
+    },
+    'easternJinMigration': {
+      text: '你選擇了南渡。這是一段艱辛的旅程，你與無數士人百姓一同跨越長江，來到江南。你見證了司馬睿在王導、王敦等世家大族的扶持下，在建康（今南京）建立了東晉政權。你雖然失去了故土，但在南方，你找到了新的生存空間，並在新的政權中扮演著重要的角色。',
+      image: 'easternJinMigration',
+      choices: [
+        { text: '參與王羲之、謝安等名士舉辦的蘭亭雅集', nextScene: 'lantingGatheringEvent' },
+        { text: '開啟東晉新篇章，重新開始遊戲', nextScene: 'opening' }
+      ]
+    },
+    'lantingGatheringEvent': {
+      text: '公元353年三月初三，會稽山陰之蘭亭，你參與了由王羲之、謝安、孫綽等四十一位名士舉辦的蘭亭雅集。群賢畢至，少長咸集，眾人席地而坐，暢飲詩酒。清澈的溪水蜿蜒曲折，酒杯沿著水流緩緩漂下。杯子停在誰的面前，誰就必須吟詩一首，否則便要罰酒三杯。\n\n你感受著春日和煦的微風，仰望著澄澈蔚藍的天空，俯視著流動的清溪，暢遊在「足以極視聽之娛」的自然美景中。你與友人談笑風生，放縱形骸，這是一個遠離塵世喧囂，暫時忘卻亂世煩憂的「盛事」。然而，在盡情享受歡樂的同時，你也隱約感受到一種深藏的憂愁。在王羲之的《蘭亭集序》中，他寫道：「向之所欣，俯仰之間，已為陳跡，猶不能不以之興懷。」你突然意識到，眼前這份美好，終將隨時間消逝。而人生，不過是「死生亦大矣」，這短暫的歡愉之後，仍是無盡的悲哀與虛無。',
+      image: 'lantingGatheringEvent',
+      choices: [
+        { text: '參與曲水流觴，與眾人一同猜謎作對', nextScene: 'windingStreamGame' },
+      ]
+    },
+    'windingStreamGame': {
+      text: '歡迎來到曲水流觴！這是一個充滿雅趣的遊戲。在座的每一位都將面臨一個謎題，當酒杯流經你面前而你未完成猜謎時，就必須罰酒三杯。',
+      image: 'windingStreamGame',
+      specialAction: 'startRiddle'
+    },
+    'lantingGatheringAftermath': {
+      text: '雅集結束後，眾人將所賦詩作彙編成冊。王羲之親自為此寫下序言，便是流傳千古的《蘭亭集序》。他在序文中寫道：「後之視今，亦猶今之視昔。」這句話讓你深感震撼，你意識到，我們對古人的懷念與感嘆，也正是未來之人對我們的看法。生命短暫，但詩文與思想卻能永恆傳承。你參與了這場盛會，也將這份感悟銘記於心。',
+      image: 'lantingGatheringAftermath',
+      choices: [
+        { text: '回到東晉主線，繼續你的旅程', nextScene: 'joinXieClan' }
+      ]
+    },
+    'surviveInNorth': {
+      text: '你選擇了留在北方。在胡人政權的統治下，你必須學會適應新的社會規則。曾經的漢人貴族與士大夫階層失去了往日的榮光，家園淪為廢墟，文化傳承面臨斷裂的危機。你曾試圖維護漢人的文化與尊嚴，但發現個人的力量如此渺小。為了生存，你不得不躬耕田畝，過著與昔日清談、詩酒風流截然不同的生活。這是一場文化的失落與生存的掙扎。在充滿挑戰與危險的亂世中，你只能掙扎求存，期待著有朝一日中原能重回安定，讓漢家文化得以復興。',
+      image: 'surviveInNorth',
+      choices: [{ text: '重新開始遊戲', nextScene: 'opening' }]
+    }
+  },
+  riddles: [
+    { riddle: '身輕似燕，腳踏清流，有杯無酒，雅士相求。猜一物？', answer: '酒杯' },
+    { riddle: '無口能言，無足能行，來去無蹤，卻能傳情。猜一物？', answer: '書信' },
+    { riddle: '生於山林，死於筆下，能言善辯，能書善畫。猜一物？', answer: '毛筆' }
+  ],
+  currentRiddleIndex: 0
+};
+
+// 遊戲狀態
+let gameState = {
+  isTyping: false,
+  typeTimer: null,
+  currentText: '',
+  charIndex: 0,
+  autoPlay: false,
+  currentChoices: [],
+  specialAction: null,
+  riddleTimer: null,
+  textComplete: false,
+  waitingForClick: false
+};
+
+// DOM 元素
+const bgLayer = document.getElementById('bg-layer');
+const titleScreen = document.getElementById('title-screen');
+const inputArea = document.getElementById('input-area');
+const nameInput = document.getElementById('player-name-input');
+const dialogueBox = document.getElementById('dialogue-box');
+const speakerName = document.getElementById('speaker-name');
+const dialogueText = document.getElementById('dialogue-text');
+const dialogueContinue = document.getElementById('dialogue-continue');
+const choicesContainer = document.getElementById('choices-container');
+const userInfo = document.getElementById('user-info');
+const messageBox = document.getElementById('message-box');
+const riverContainer = document.getElementById('river-path-container');
+const wineCup = document.getElementById('wine-cup');
+const uiButtons = document.getElementById('ui-buttons');
+
+function showInputArea() {
+  titleScreen.style.display = 'none';
+  inputArea.style.display = 'flex';
+  if (images.opening) {
+    bgLayer.style.backgroundImage = `url('${images.opening}')`;
+  }
+  // 初始化音訊（需要用戶互動）
+  initAudio();
+  // 自動播放音樂
+  setTimeout(() => {
+    switchTrack('guqin');
+  }, 300);
+  setTimeout(() => nameInput.focus(), 100);
+}
+
+function resetGameState() {
+  clearTimeout(gameState.typeTimer);
+  clearTimeout(gameState.riddleTimer);
+  
+  gameState.isTyping = false;
+  gameState.currentText = '';
+  gameState.charIndex = 0;
+  gameState.currentChoices = [];
+  gameState.specialAction = null;
+  gameState.autoPlay = false;
+  gameState.textComplete = false;
+  gameState.waitingForClick = false;
+  
+  gameData.playerName = '';
+  gameData.currentScene = 'opening';
+  gameData.currentRiddleIndex = 0;
+  
+  dialogueBox.style.display = 'none';
+  choicesContainer.style.display = 'none';
+  riverContainer.style.display = 'none';
+  uiButtons.style.display = 'none';
+  userInfo.style.display = 'none';
+  inputArea.style.display = 'none';
+  
+  dialogueText.innerHTML = '';
+  dialogueContinue.classList.remove('show');
+  choicesContainer.innerHTML = '';
+  nameInput.value = '';
+}
+
+function startGame() {
+  const name = nameInput.value.trim();
+  if (name) {
+    gameData.playerName = name;
+    inputArea.style.display = 'none';
+    dialogueBox.style.display = 'block';
+    uiButtons.style.display = 'flex';
+    userInfo.style.display = 'block';
+    userInfo.textContent = `玩家：${gameData.playerName}`;
+    renderScene('eraStart');
+  } else {
+    showMessage('請輸入你的姓名才能開始遊戲！');
+  }
+}
+
+function showMessage(message) {
+  messageBox.textContent = message;
+  messageBox.style.display = 'block';
+  setTimeout(() => {
+    messageBox.style.display = 'none';
+  }, 3000);
+}
+
+function renderScene(sceneName) {
+  const scene = gameData.scenes[sceneName];
+  if (!scene) {
+    console.error('場景未找到：', sceneName);
+    return;
+  }
+
+  gameData.currentScene = sceneName;
+  
+  clearTimeout(gameState.typeTimer);
+  clearTimeout(gameState.riddleTimer);
+  gameState.isTyping = false;
+  gameState.specialAction = null;
+  gameState.textComplete = false;
+  gameState.waitingForClick = false;
+  
+  choicesContainer.style.display = 'none';
+  choicesContainer.innerHTML = '';
+  riverContainer.style.display = 'none';
+  
+  if (scene.image && images[scene.image]) {
+    bgLayer.style.backgroundImage = `url('${images[scene.image]}')`;
+  }
+
+  if (sceneName === 'opening') {
+    resetGameState();
+    if (images.opening) {
+      bgLayer.style.backgroundImage = `url('${images.opening}')`;
+    }
+    inputArea.style.display = 'flex';
+    setTimeout(() => nameInput.focus(), 100);
+    return;
+  }
+
+  dialogueBox.style.display = 'block';
+  uiButtons.style.display = 'flex';
+  userInfo.style.display = 'block';
+  userInfo.textContent = gameData.playerName ? `玩家：${gameData.playerName}` : '';
+
+  const fullText = scene.text.replace('(前段所取名)', gameData.playerName);
+  
+  showDialogue('旁白', fullText, scene.choices, scene.specialAction);
+}
+
+function showDialogue(speaker, text, choices, specialAction) {
+  speakerName.textContent = speaker;
+  speakerName.className = 'speaker-name' + (speaker === '旁白' ? ' narrator' : '');
+  dialogueContinue.classList.remove('show');
+  
+  gameState.isTyping = true;
+  gameState.currentText = text;
+  gameState.charIndex = 0;
+  gameState.currentChoices = choices || [];
+  gameState.specialAction = specialAction || null;
+  gameState.textComplete = false;
+  gameState.waitingForClick = false;
+  
+  dialogueText.innerHTML = '';
+  typeText();
+}
+
+function typeText() {
+  if (gameState.charIndex < gameState.currentText.length) {
+    dialogueText.innerHTML = gameState.currentText.substring(0, gameState.charIndex + 1) + '<span class="cursor-blink"></span>';
+    gameState.charIndex++;
+    gameState.typeTimer = setTimeout(typeText, 50);
+  } else {
+    dialogueText.innerHTML = gameState.currentText;
+    gameState.isTyping = false;
+    gameState.textComplete = true;
+    dialogueContinue.classList.add('show');
+    gameState.waitingForClick = true;
+  }
+}
+
+function advanceDialogue() {
+  if (gameState.isTyping) {
+    clearTimeout(gameState.typeTimer);
+    dialogueText.innerHTML = gameState.currentText;
+    gameState.isTyping = false;
+    gameState.textComplete = true;
+    dialogueContinue.classList.add('show');
+    gameState.waitingForClick = true;
+    return;
+  }
+  
+  if (gameState.waitingForClick && gameState.textComplete) {
+    gameState.waitingForClick = false;
+    dialogueContinue.classList.remove('show');
+    
+    if (gameState.specialAction === 'startRiddle') {
+      setTimeout(() => startRiddleGame(), 300);
+    } else if (gameState.currentChoices.length > 0) {
+      setTimeout(() => showChoices(gameState.currentChoices), 300);
+    }
+  }
+}
+
+function showChoices(choices) {
+  dialogueBox.style.display = 'none';
+  choicesContainer.innerHTML = '';
+  choicesContainer.style.display = 'flex';
+
+  choices.forEach((choice, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `<span class="choice-num">${i + 1}.</span>${choice.text}`;
+    btn.onclick = () => {
+      choicesContainer.style.display = 'none';
+      dialogueBox.style.display = 'block';
+      renderScene(choice.nextScene);
+    };
+    choicesContainer.appendChild(btn);
+  });
+}
+
+function startRiddleGame() {
+  dialogueBox.style.display = 'none';
+  choicesContainer.innerHTML = '';
+  
+  wineCup.style.animation = 'none';
+  void wineCup.offsetWidth;
+  wineCup.style.animation = 'float-cup 8s linear forwards';
+  riverContainer.style.display = 'block';
+
+  const randomIndex = Math.floor(Math.random() * gameData.riddles.length);
+  gameData.currentRiddleIndex = randomIndex;
+  const riddle = gameData.riddles[randomIndex];
+
+  choicesContainer.style.display = 'flex';
+  choicesContainer.innerHTML = `
+    <div style="color: #f0e6d3; font-size: 1.2rem; text-align: center; margin-bottom: 20px; background: rgba(10,10,30,0.85); padding: 20px; border-radius: 8px; border: 1px solid rgba(212,175,55,0.3); backdrop-filter: blur(10px);">
+      在座的雅士們向你投來一個謎題：<br><br>
+      <span style="color: #d4af37; font-size: 1.3rem;">「${riddle.riddle}」</span><br><br>
+      請在酒杯漂到你面前前，回答這個謎題！
+    </div>
+    <input type="text" id="riddle-input" class="name-input" placeholder="請輸入你的答案..." style="margin-bottom: 10px;">
+    <button class="choice-btn" onclick="checkRiddleAnswer()" style="text-align:center;">提交答案</button>
+  `;
+
+  const riddleInput = document.getElementById('riddle-input');
+  riddleInput.focus();
+
+  gameState.riddleTimer = setTimeout(() => {
+    if (gameData.currentScene === 'windingStreamGame') {
+      showMessage('時間到！你沒能答出謎題，只好罰酒三杯。');
+      setTimeout(() => {
+        renderScene('lantingGatheringAftermath');
+      }, 2000);
+    }
+  }, 8000);
+}
+
+function checkRiddleAnswer() {
+  const riddleInput = document.getElementById('riddle-input');
+  if (!riddleInput) return;
+  const userAnswer = riddleInput.value.trim();
+  const correctAnswer = gameData.riddles[gameData.currentRiddleIndex].answer;
+
+  clearTimeout(gameState.riddleTimer);
+
+  if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+    showMessage('恭喜！你答對了！展現了你的機智與才學。');
+  } else {
+    showMessage('很遺憾，答案不對。你只好罰酒三杯了。');
+  }
+
+  setTimeout(() => {
+    renderScene('lantingGatheringAftermath');
+  }, 2000);
+}
+
+function toggleAuto() {
+  gameState.autoPlay = !gameState.autoPlay;
+}
+
+function backToTitle() {
+  resetGameState();
+  bgLayer.style.backgroundImage = '';
+  titleScreen.style.display = 'flex';
+  // 停止音樂
+  stopAllMusic();
+  musicPlaying = false;
+  document.getElementById('music-btn').classList.remove('playing');
+  document.getElementById('music-btn').textContent = '♪';
+  document.getElementById('volume-control').classList.remove('show');
+}
+
+// 鍵盤控制
+document.addEventListener('keydown', (e) => {
+  if (titleScreen.style.display === 'flex') return;
+  
+  if (inputArea.style.display === 'flex') {
+    if (e.key === 'Enter') {
+      startGame();
+    }
+    return;
+  }
+  
+  const riddleInput = document.getElementById('riddle-input');
+  if (riddleInput && document.activeElement === riddleInput) {
+    if (e.key === 'Enter') {
+      checkRiddleAnswer();
+    }
+    return;
+  }
+  
+  if (e.key === ' ' || e.key === 'Enter') {
+    e.preventDefault();
+    advanceDialogue();
+  } else if (e.key >= '1' && e.key <= '9') {
+    const choices = choicesContainer.querySelectorAll('.choice-btn');
+    const index = parseInt(e.key) - 1;
+    if (choices[index]) choices[index].click();
+  } else if (e.key === 'm' || e.key === 'M') {
+    toggleMusicMenu(e);
+  }
+});
+
+// 粒子效果
+function createParticles() {
+  const container = document.getElementById('game-container');
+  setInterval(() => {
+    if (titleScreen.style.display !== 'flex') {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.bottom = '20%';
+      p.style.animationDuration = (3 + Math.random() * 3) + 's';
+      container.appendChild(p);
+      setTimeout(() => p.remove(), 6000);
+    }
+  }, 800);
+}
+createParticles();
+</script>
+
+</body>
+</html>
